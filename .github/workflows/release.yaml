@@ -1,0 +1,44 @@
+name: release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: go build
+      run: |
+        go build ./...
+
+  release:
+    needs: test
+    strategy:
+      matrix:
+        include:
+          goos: [linux, darwin]
+          goarch: [amd64, arm64]
+    permissions:
+      packages: write
+      contents: read
+      attestations: write
+      id-token: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: prepare version string
+        run: |
+          echo VERSION_TAG=${GITHUB_REF#$"refs/tags/v"} >> $GITHUB_ENV
+      - name: checkout
+        uses: actions/checkout@v4
+      - name: Build and Release
+        id: build_release
+        run: |
+          env GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} CGO_ENABLED=0 \
+            go build -o dynreverse-${{ matrix.goos }}-${{ matrix.goarch }} ./cmd/dynreverse
+
+
