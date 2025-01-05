@@ -15,17 +15,29 @@ I created this reverse proxy to run on my local machine offering an endpoint for
 ## Usage
 
 ```bash
-
 $ dynreverse reverse --upstream-endpoint peer.example.com:51820 --listen-address 127.0.0.1:50001
 ```
 
 ## Installation
 
-On OSX you might want to make this a "launch agent":
-
+Either build:
 
 ```bash
 $ go build -o dynreverse ./cmd/dynreverse
+```
+
+Or download the latest binary release:
+
+```bash
+$ curl -JLO https://github.com/thz/dynreverse/releases/latest/download/dynreverse-darwin-arm64
+$ curl -JLO https://github.com/thz/dynreverse/releases/latest/download/dynreverse-darwin-amd64
+$ curl -JLO https://github.com/thz/dynreverse/releases/latest/download/dynreverse-linux-amd64
+$ curl -JLO https://github.com/thz/dynreverse/releases/latest/download/dynreverse-linux-arm64
+```
+
+On OSX you might want to make this a "launch agent":
+
+```bash
 $ mkdir -p ~/Library/com.github.thz.dynreverse
 $ cp dynreverse ~/Library/com.github.thz.dynreverse/
 
