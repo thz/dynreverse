@@ -5,6 +5,9 @@ on:
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+'
 
+permissions:
+  contents: write
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -18,16 +21,27 @@ jobs:
 
   release:
     needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+    outputs:
+      release_url: ${{ steps.create_release.outputs.upload_url }}
+
+  release-assets:
+    needs: release
     strategy:
       matrix:
-        include:
-          goos: [linux, darwin]
-          goarch: [amd64, arm64]
-    permissions:
-      packages: write
-      contents: read
-      attestations: write
-      id-token: write
+        goos: [linux, darwin]
+        goarch: [amd64, arm64]
     runs-on: ubuntu-latest
     steps:
       - name: prepare version string
@@ -42,24 +56,13 @@ jobs:
           env GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} CGO_ENABLED=0 \
             go build -o dynreverse-${{ matrix.goos }}-${{ matrix.goarch }} ./cmd/dynreverse
 
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          draft: false
-          prerelease: false
-
       - name: Upload Release Asset
         id: upload-release-asset
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          upload_url: ${{ needs.release.outputs.release_url }}
           asset_path: ./dynreverse-${{ matrix.goos }}-${{ matrix.goarch }}
           asset_name: dynreverse-${{ matrix.goos }}-${{ matrix.goarch }}
           asset_content_type: application/octet-stream
