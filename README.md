@@ -16,7 +16,7 @@ I created this reverse proxy to run on my local machine offering an endpoint for
 
 ```bash
 
-$ dynreverse reverse --upstream-endpoint wg-peer.exmaple.com:51820 --listen-address 127.0.0.1:50001
+$ dynreverse reverse --upstream-endpoint peer.example.com:51820 --listen-address 127.0.0.1:50001
 ```
 
 ## Installation
@@ -37,13 +37,13 @@ cat > ~/Library/LaunchAgents/com.github.thz.dynreverse.plist <<EOF
     <key>Label</key>
     <string>com.github.thz.dynreverse</string>
     <key>Program</key>
-    <string>/Users/th/Library/com.github.thz.dynreverse/dynreverse</string>
+    <string>/Users/thz/Library/com.github.thz.dynreverse/dynreverse</string>
     <key>ProgramArguments</key>
     <array>
       <string>dynreverse</string>
       <string>reverse</string>
       <string>--upstream-endpoint</string>
-      <string>wg-peer.example.com:51820</string>
+      <string>peer.example.com:51820</string>
     </array>
     <key>RunAtLoad</key>
     <true/>
