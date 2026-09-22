@@ -26,7 +26,12 @@ import (
 	"go.uber.org/zap"
 )
 
-const udpBufferSize = 1500
+// udpBufferSize is the read buffer for a single datagram. ReadFromUDP silently
+// truncates anything larger, so this covers the largest UDP payload IPv4
+// allows. 1500 was enough for an untagged Ethernet path and truncated on jumbo
+// frames or after IP reassembly. The buffer exists once per connection and
+// only the bytes actually received are copied on, so the size costs little.
+const udpBufferSize = 65535
 
 type Proxy struct {
 	UpstreamEndpoint string
@@ -248,6 +253,9 @@ func (p *Proxy) listenAndServeDownstream(ctx context.Context, downstreamSendQueu
 
 		log.Debug("received packet from downstream", zap.String("addr", addr.String()), zap.Int("len", n))
 
+		// Written synchronously before the next read, so sharing buf is safe
+		// here and no copy is needed. Anything that hands buf to another
+		// goroutine needs its own storage, see readUpstream.
 		var written int
 		written, err = proxyConn.Upstream.Write(buf[:n])
 		if err != nil {
@@ -286,9 +294,14 @@ func (p *ProxyConn) readUpstream(ctx context.Context) error {
 		if n > 0 {
 			log.Debug("received packet from upstream", zap.String("addr", addr.String()), zap.Int("len", n))
 			watchdog.Reset(upstreamWatchdogTimeout)
+			// The queued packet outlives this iteration, so it needs its own
+			// storage. Handing over a slice of buf lets the next read overwrite
+			// a packet that has not been sent yet.
+			data := make([]byte, n)
+			copy(data, buf[:n])
 			packet := Packet{
 				Addr: p.DownstreamAddress,
-				Data: buf[:n],
+				Data: data,
 			}
 			select {
 			case p.DownstreamSendQueue <- packet:
